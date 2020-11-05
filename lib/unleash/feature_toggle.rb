@@ -43,7 +43,8 @@ module Unleash
       variant = variant_from_override_match(context)
       variant = variant_from_weights(context) if variant.nil?
 
-      Unleash.toggle_metrics.increment_variant(self.name, variant.name) unless Unleash.configuration.disable_metrics
+      # Unleash.toggle_metrics.increment_variant(self.name, variant.name) unless Unleash.configuration.disable_metrics
+      Unleash.events.record(self.name, context, 'variant', variant.name)
       variant
     end
 

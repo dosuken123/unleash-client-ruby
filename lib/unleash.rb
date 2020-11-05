@@ -21,12 +21,13 @@ module Unleash
     .to_h
 
   class << self
-    attr_accessor :configuration, :toggle_fetcher, :toggles, :toggle_metrics, :reporter, :logger
+    attr_accessor :configuration, :toggle_fetcher, :toggles, :toggle_metrics, :events, :reporter, :logger
   end
 
   def self.initialize
     self.toggles = []
     self.toggle_metrics = {}
+    self.events = {}
   end
 
   # Support for configuration via yield:

@@ -1,6 +1,7 @@
 require 'unleash/configuration'
 require 'unleash/toggle_fetcher'
 require 'unleash/metrics_reporter'
+require 'unleash/events_reporter'
 require 'unleash/scheduled_executor'
 require 'unleash/feature_toggle'
 require 'unleash/util/http'
@@ -9,7 +10,7 @@ require 'time'
 
 module Unleash
   class Client
-    attr_accessor :fetcher_scheduled_executor, :metrics_scheduled_executor
+    attr_accessor :fetcher_scheduled_executor, :metrics_scheduled_executor, :events_scheduled_executor
 
     def initialize(*opts)
       Unleash.configuration ||= Unleash::Configuration.new(*opts)
@@ -25,7 +26,8 @@ module Unleash
 
       register
       start_toggle_fetcher
-      start_metrics unless Unleash.configuration.disable_metrics
+      # start_metrics unless Unleash.configuration.disable_metrics
+      start_events unless Unleash.configuration.disable_metrics
     end
 
     def is_enabled?(feature, context = nil, default_value = false)
@@ -84,6 +86,10 @@ module Unleash
       variant
     end
 
+    def record_event(name, context)
+      Unleash.events.record(name, context, 'engage')
+    end
+
     # safe shutdown: also flush metrics to server and toggles to disk
     def shutdown
       unless Unleash.configuration.disable_client
@@ -97,7 +103,8 @@ module Unleash
     def shutdown!
       unless Unleash.configuration.disable_client
         self.fetcher_scheduled_executor.exit
-        self.metrics_scheduled_executor.exit unless Unleash.configuration.disable_metrics
+        # self.metrics_scheduled_executor.exit unless Unleash.configuration.disable_metrics
+        self.events_scheduled_executor.exit unless Unleash.configuration.disable_metrics
       end
     end
 
@@ -135,6 +142,19 @@ module Unleash
         Unleash.configuration.retry_limit
       )
       self.metrics_scheduled_executor.run do
+        Unleash.reporter.send
+      end
+    end
+
+    def start_events
+      Unleash.events = Unleash::Events.new
+      Unleash.reporter = Unleash::EventsReporter.new
+      self.events_scheduled_executor = Unleash::ScheduledExecutor.new(
+        'EventsReporter',
+        Unleash.configuration.metrics_interval,
+        Unleash.configuration.retry_limit
+      )
+      self.events_scheduled_executor.run do
         Unleash.reporter.send
       end
     end

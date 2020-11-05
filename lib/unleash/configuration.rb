@@ -59,6 +59,10 @@ module Unleash
       self.url + '/client/metrics'
     end
 
+    def client_events_url
+      self.url + '/client/events'
+    end
+
     def client_register_url
       self.url + '/client/register'
     end
